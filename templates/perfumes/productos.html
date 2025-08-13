@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Productos - Arkarz Perfums{% endblock %}
+
+{% block content %}
+<div class="py-8 bg-black min-h-screen">
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gold mb-4">Nuestros Perfumes</h1>
+            <p class="text-gray-300 text-lg">Descubre nuestra exclusiva colección de fragancias árabes</p>
+        </div>
+        
+        <!-- Grid de productos -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {% for producto in productos %}
+            <div class="bg-darker rounded-xl shadow-lg overflow-hidden hover:scale-105 transition-transform border border-gold">
+                {% if producto.imagen %}
+                    <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" 
+                         class="w-full h-64 object-cover">
+                {% else %}
+                    <div class="w-full h-64 bg-gray-800 flex items-center justify-center">
+                        <span class="text-gold text-6xl">🏺</span>
+                    </div>
+                {% endif %}
+                
+                <div class="p-6">
+                    <h3 class="text-xl font-bold text-gold mb-2">{{ producto.nombre }}</h3>
+                    <p class="text-gray-300 mb-2">{{ producto.tamaño }}</p>
+                    
+                    <div class="flex items-center justify-between mb-4">
+                        {% if producto.tiene_descuento %}
+                            <div>
+                                <span class="text-xl font-bold text-green-600">${{ producto.precio_con_descuento }}</span>
+                                <span class="text-sm line-through text-gray-400">${{ producto.precio }}</span>
+                            </div>
+                            <span class="bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
+                                -{{ producto.porcentaje_descuento }}%
+                            </span>
+                        {% else %}
+                            <span class="text-xl font-bold text-gold">${{ producto.precio }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button onclick="openModal('{{ producto.id }}')" class="flex-1 gradient-gold text-black py-2 rounded-lg transition-transform hover:scale-105 font-semibold">
+                            Ver Detalles
+                        </button>
+                        <button onclick="addToCart({{ producto.id }}, '{{ producto.nombre|escapejs }}', {{ producto.precio }}, '{% if producto.imagen %}{{ producto.imagen.url }}{% else %}/static/images/default-perfume.jpg{% endif %}')" 
+                                class="bg-gold hover:bg-yellow-500 text-black p-2 rounded-lg transition-transform hover:scale-105">
+                            🛒
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full text-center py-12">
+                <span class="text-gold text-8xl block mb-4">🏺</span>
+                <h3 class="text-2xl font-bold text-gold mb-2">No hay productos disponibles</h3>
+                <p class="text-gray-400">Pronto agregaremos nuevas fragancias</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modales para cada producto -->
+{% for producto in productos %}
+<!-- Modal para {{ producto.nombre }} -->
+<div id="modal-{{ producto.id }}" class="fixed inset-0 bg-black bg-opacity-75 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-darker rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gold">
+        <div class="p-6">
+            <div class="flex justify-between items-start mb-6">
+                <h2 class="text-2xl font-bold text-gold">{{ producto.nombre }}</h2>
+                <button onclick="closeModal('{{ producto.id }}')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    {% if producto.imagen %}
+                        <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" 
+                             class="w-full h-64 object-cover rounded-lg">
+                    {% else %}
+                        <div class="w-full h-64 bg-gray-800 flex items-center justify-center rounded-lg">
+                            <span class="text-gold text-6xl">🏺</span>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <div class="mb-4">
+                        <h3 class="text-lg font-semibold text-gold mb-2">Precio</h3>
+                        {% if producto.tiene_descuento %}
+                            <div class="flex items-center space-x-2">
+                                <span class="text-2xl font-bold text-green-600">${{ producto.precio_con_descuento }}</span>
+                                <span class="text-lg line-through text-gray-400">${{ producto.precio }}</span>
+                                <span class="bg-red-500 text-white px-2 py-1 rounded text-sm font-bold">
+                                    -{{ producto.porcentaje_descuento }}%
+                                </span>
+                            </div>
+                        {% else %}
+                            <span class="text-2xl font-bold text-gold">${{ producto.precio }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h3 class="text-lg font-semibold text-gold mb-2">Tamaño</h3>
+                        <p class="text-gray-300">{{ producto.tamaño }}</p>
+                    </div>
+                    
+                    {% if producto.descripcion %}
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gold mb-2">Descripción</h3>
+                        <p class="text-gray-300 leading-relaxed">{{ producto.descripcion }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="flex space-x-4 mt-6">
+                <button onclick="closeModal('{{ producto.id }}')" 
+                        class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition-colors">
+                    Cerrar
+                </button>
+                <button onclick="addToCart({{ producto.id }}, '{{ producto.nombre|escapejs }}', {{ producto.precio }}, '{% if producto.imagen %}{{ producto.imagen.url }}{% else %}/static/images/default-perfume.jpg{% endif %}'); closeModal('{{ producto.id }}')" 
+                        class="flex-1 bg-gold hover:bg-yellow-500 text-black py-2 px-4 rounded-lg transition-colors font-semibold">
+                    🛒 Agregar al Carrito
+                </button>
+                <a href="https://wa.me/573218599032?text=Hola, estoy interesado en el perfume {{ producto.nombre|urlencode }} - ${{ producto.precio }}" 
+                   target="_blank"
+                   class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors text-center font-semibold">
+                    💬 Comprar Directo
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+function openModal(productId) {
+    document.getElementById('modal-' + productId).classList.remove('hidden');
+}
+
+function closeModal(productId) {
+    document.getElementById('modal-' + productId).classList.add('hidden');
+}
+
+// Cerrar modal al hacer clic fuera de él
+document.addEventListener('click', function(event) {
+    if (event.target.classList.contains('fixed')) {
+        event.target.classList.add('hidden');
+    }
+});
+</script>
+
+{% endblock %}
