@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Arkarz Perfums{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'gold': '#FFD700',
+                        'dark': '#1a1a1a',
+                        'darker': '#111111'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-gold {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+        }
+    </style>
+</head>
+<body class="bg-black text-white">
+    <!-- Navegación -->
+    <nav class="bg-darker shadow-lg border-b border-gold sticky top-0 z-40">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-8">
+                    <a href="{% url 'perfumes:home' %}" class="text-2xl font-bold text-gold">Arkarz Perfums</a>
+                    <div class="hidden md:flex space-x-6">
+                        <a href="{% url 'perfumes:home' %}" class="text-gray-300 hover:text-gold transition-colors">Inicio</a>
+                        <a href="{% url 'perfumes:productos' %}" class="text-gray-300 hover:text-gold transition-colors">Productos</a>
+                    </div>
+                </div>
+                <!-- Carrito de compras -->
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleCart()" class="relative text-gray-300 hover:text-gold transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 1.5M7 13l1.5 1.5m0 0L15 18H8l-7-7m15 0v6a2 2 0 01-2 2H8a2 2 0 01-2-2v-6m12 0H8"></path>
+                        </svg>
+                        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Carrito lateral -->
+    <div id="cart-sidebar" class="fixed right-0 top-0 h-full w-80 bg-darker border-l border-gold transform translate-x-full transition-transform z-50">
+        <div class="p-4 border-b border-gold">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gold">🛒 Mi Carrito</h3>
+                <button onclick="toggleCart()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+        </div>
+        <div id="cart-items" class="p-4 flex-1 overflow-y-auto max-h-96">
+            <div id="empty-cart" class="text-center py-8">
+                <span class="text-gold text-4xl block mb-2">🛒</span>
+                <p class="text-gray-400">Tu carrito está vacío</p>
+            </div>
+        </div>
+        <div class="p-4 border-t border-gold">
+            <div class="mb-4">
+                <div class="flex justify-between items-center text-lg font-bold">
+                    <span class="text-gold">Total:</span>
+                    <span id="cart-total" class="text-gold">$0</span>
+                </div>
+            </div>
+            <button id="checkout-btn" onclick="checkout()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                💬 Finalizar por WhatsApp
+            </button>
+        </div>
+    </div>
+
+    <!-- Overlay para cerrar carrito -->
+    <div id="cart-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40" onclick="toggleCart()"></div>
+
+    <!-- JavaScript del carrito -->
+    <script>
+        // Usar variable global en lugar de localStorage
+        let cart = [];
+
+        function updateCartUI() {
+            const cartCount = document.getElementById('cart-count');
+            const cartItems = document.getElementById('cart-items');
+            const cartTotal = document.getElementById('cart-total');
+            const emptyCart = document.getElementById('empty-cart');
+            const checkoutBtn = document.getElementById('checkout-btn');
+
+            // Actualizar contador
+            if (cart.length > 0) {
+                const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+                cartCount.textContent = totalItems;
+                cartCount.classList.remove('hidden');
+            } else {
+                cartCount.classList.add('hidden');
+            }
+
+            // Actualizar items del carrito
+            if (cart.length === 0) {
+                checkoutBtn.disabled = true;
+                cartTotal.textContent = '$0';
+                cartItems.innerHTML = `
+                    <div id="empty-cart" class="text-center py-8">
+                        <span class="text-gold text-4xl block mb-2">🛒</span>
+                        <p class="text-gray-400">Tu carrito está vacío</p>
+                    </div>
+                `;
+            } else {
+                checkoutBtn.disabled = false;
+
+                let total = 0;
+                cartItems.innerHTML = cart.map(item => {
+                    const itemTotal = item.price * item.quantity;
+                    total += itemTotal;
+                    return `
+                        <div class="flex items-center space-x-3 p-3 border-b border-gray-700 last:border-b-0">
+                            <img src="${item.image}" alt="${item.name}" class="w-12 h-12 object-cover rounded">
+                            <div class="flex-1">
+                                <h4 class="text-sm font-semibold text-gold">${item.name}</h4>
+                                <p class="text-xs text-gray-400">${item.price}</p>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <button onclick="updateQuantity(${item.id}, ${item.quantity - 1})" class="text-xs bg-gray-600 hover:bg-gray-700 px-2 py-1 rounded">-</button>
+                                    <span class="text-xs">${item.quantity}</span>
+                                    <button onclick="updateQuantity(${item.id}, ${item.quantity + 1})" class="text-xs bg-gray-600 hover:bg-gray-700 px-2 py-1 rounded">+</button>
+                                </div>
+                            </div>
+                            <button onclick="removeFromCart(${item.id})" class="text-red-500 hover:text-red-400">×</button>
+                        </div>
+                    `;
+                }).join('');
+
+                cartTotal.textContent = `${total.toFixed(3)}`;
+            }
+        }
+
+        function addToCart(id, name, price, image) {
+            // Buscar si el producto ya existe en el carrito
+            const existingItemIndex = cart.findIndex(item => item.id === parseInt(id));
+            if (existingItemIndex !== -1) {
+                cart[existingItemIndex].quantity += 1;
+            } else {
+                const newItem = {
+                    id: parseInt(id),
+                    name: name,
+                    price: parseFloat(price),
+                    image: image,
+                    quantity: 1
+                };
+                cart.push(newItem);
+            }
+            updateCartUI();
+            showToast('Producto agregado al carrito');
+        }
+
+        function updateQuantity(id, newQuantity) {
+            if (newQuantity <= 0) {
+                removeFromCart(id);
+                return;
+            }
+            const itemIndex = cart.findIndex(item => item.id === parseInt(id));
+            if (itemIndex !== -1) {
+                cart[itemIndex].quantity = newQuantity;
+                updateCartUI();
+            }
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(item => item.id !== parseInt(id));
+            updateCartUI();
+            showToast('Producto eliminado del carrito');
+        }
+
+        function toggleCart() {
+            const sidebar = document.getElementById('cart-sidebar');
+            const overlay = document.getElementById('cart-overlay');
+            if (sidebar.classList.contains('translate-x-full')) {
+                sidebar.classList.remove('translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function checkout() {
+            if (cart.length === 0) return;
+            let message = "Hola, quiero hacer este pedido:\n\n🛒 MI CARRITO:\n";
+            let total = 0;
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                message += `• ${item.name} - ${item.price} (x${item.quantity}) = ${itemTotal.toFixed(3)}\n`;
+                total += itemTotal;
+            });
+            message += `\n💰 Total: ${total.toFixed(3)}\n\nPor favor confirma disponibilidad.`;
+            const whatsappUrl = `https://wa.me/573218599032?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 100);
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCartUI();
+        });
+    </script>
+
+    <!-- Footer -->
+    <footer class="bg-darker border-t border-gold py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <div class="text-gold font-bold text-lg mb-2">Arkarz Perfums</div>
+            <p class="text-gray-400 text-sm">Fragancias árabes exclusivas</p>
+        </div>
+    </footer>
+</body>
+</html>

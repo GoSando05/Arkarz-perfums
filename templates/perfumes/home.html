@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-center mb-8">Bienvenido a Arkarz Perfums</h1>
+    <p class="text-center text-gray-600 mb-8">Los mejores perfumes árabes</p>
+    
+    <div class="text-center">
+        <a href="{% url 'perfumes:productos' %}" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700">
+            Ver Productos
+        </a>
+    </div>
+</div>
+{% endblock %}
