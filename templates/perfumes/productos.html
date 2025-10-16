@@ -8,12 +8,12 @@
     <h1 class="text-4xl font-bold text-center mb-8 text-gold">Nuestros Perfumes</h1>
     
     <!-- Formulario de Filtros -->
-    <div class="bg-darker rounded-lg shadow-md p-6 mb-8 border border-gold">
+    <div class="mb-8">
         <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <!-- Filtro por Marca -->
             <div>
                 <label class="block text-sm font-medium text-gold mb-2">Marca</label>
-                <select name="marca" class="w-full px-3 py-2 border border-gold rounded-md bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold">
+                <select name="marca" class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold">
                     <option value="">Todas las marcas</option>
                     {% for marca in marcas %}
                         <option value="{{ marca.id }}" {% if marca.id|stringformat:"s" == marca_seleccionada %}selected{% endif %}>
@@ -26,7 +26,7 @@
             <!-- Filtro por Sexo -->
             <div>
                 <label class="block text-sm font-medium text-gold mb-2">Género</label>
-                <select name="sexo" class="w-full px-3 py-2 border border-gold rounded-md bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold">
+                <select name="sexo" class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold">
                     <option value="">Todos</option>
                     <option value="H" {% if sexo_seleccionado == 'H' %}selected{% endif %}>Hombre</option>
                     <option value="M" {% if sexo_seleccionado == 'M' %}selected{% endif %}>Mujer</option>
@@ -38,21 +38,21 @@
             <div>
                 <label class="block text-sm font-medium text-gold mb-2">Precio Mín.</label>
                 <input type="number" name="precio_min" value="{{ precio_min }}" 
-                       class="w-full px-3 py-2 border border-gold rounded-md bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold"
-                       placeholder="0" min="0">
+                       class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold"
+                       placeholder="0" min="0" step="1000">
             </div>
             
             <!-- Precio Máximo -->
             <div>
                 <label class="block text-sm font-medium text-gold mb-2">Precio Máx.</label>
                 <input type="number" name="precio_max" value="{{ precio_max }}"
-                       class="w-full px-3 py-2 border border-gold rounded-md bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold"
-                       placeholder="1000000" min="0">
+                       class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold"
+                       placeholder="1000000" min="0" step="1000">
             </div>
             
             <!-- Botón de Filtrar -->
             <div class="flex items-end">
-                <button type="submit" class="w-full bg-gold text-black py-2 px-4 rounded-md hover:bg-yellow-400 transition duration-300 font-bold">
+                <button type="submit" class="w-full bg-gold text-black py-2 px-4 rounded-full hover:bg-yellow-400 transition duration-300 font-bold shadow-lg hover:shadow-xl">
                     <i class="fas fa-filter mr-2"></i> Filtrar
                 </button>
             </div>
@@ -62,9 +62,9 @@
         <div class="mt-4">
             <form method="GET" class="flex">
                 <input type="text" name="q" value="{{ busqueda }}" 
-                       class="flex-1 px-4 py-2 border border-gold rounded-l-md bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold"
+                       class="flex-1 px-4 py-2 border border-gold rounded-l-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold"
                        placeholder="Buscar perfumes...">
-                <button type="submit" class="bg-gold text-black px-6 py-2 rounded-r-md hover:bg-yellow-400 transition duration-300 font-bold">
+                <button type="submit" class="bg-gold text-black px-6 py-2 rounded-r-full hover:bg-yellow-400 transition duration-300 font-bold">
                     <i class="fas fa-search"></i>
                 </button>
             </form>
@@ -79,7 +79,7 @@
         
         <div class="flex items-center space-x-2">
             <label class="text-sm text-gold">Ordenar por:</label>
-            <select id="ordenSelect" class="px-3 py-1 border border-gold rounded bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold">
+            <select id="ordenSelect" class="px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold">
                 <option value="nombre" {% if orden == 'nombre' %}selected{% endif %}>Nombre</option>
                 <option value="precio_asc" {% if orden == 'precio_asc' %}selected{% endif %}>Precio: Menor a Mayor</option>
                 <option value="precio_desc" {% if orden == 'precio_desc' %}selected{% endif %}>Precio: Mayor a Menor</option>
@@ -109,11 +109,12 @@
                         <p class="text-gray-400 text-sm mb-3 line-clamp-2">{{ perfume.descripcion|truncatewords:15 }}</p>
                     {% endif %}
                     
-                    <div class="flex justify-between items-center mb-3">
+                     <div class="flex justify-between items-center mb-3">
                         <span class="text-2xl font-bold text-gold">
-                            ${{ perfume.precio|floatformat:0 }}
+                          ${{ perfume.precio }}
                         </span>
-                        <span class="px-2 py-1 rounded text-xs font-medium
+                        
+                        <span class="px-3 py-1 rounded-full text-xs font-medium
                                    {% if perfume.sexo == 'H' %}bg-blue-900 text-blue-200
                                    {% elif perfume.sexo == 'M' %}bg-pink-900 text-pink-200
                                    {% else %}bg-purple-900 text-purple-200{% endif %}">
@@ -124,7 +125,7 @@
                     </div>
                     
                     <a href="{% url 'perfumes:detalle_perfume' perfume.id %}" 
-                       class="block w-full text-center bg-gold text-black py-2 rounded-md hover:bg-yellow-400 transition duration-300 font-bold">
+                       class="block w-full text-center bg-gold text-black py-2 rounded-full hover:bg-yellow-400 transition duration-300 font-bold shadow-md hover:shadow-lg">
                         <i class="fas fa-eye mr-2"></i> Ver Detalles
                     </a>
                 </div>
@@ -144,26 +145,26 @@
             <nav class="flex items-center space-x-2">
                 {% if page_obj.has_previous %}
                     <a href="?page=1{% if request.GET.marca %}&marca={{ request.GET.marca }}{% endif %}{% if request.GET.sexo %}&sexo={{ request.GET.sexo }}{% endif %}{% if request.GET.precio_min %}&precio_min={{ request.GET.precio_min }}{% endif %}{% if request.GET.precio_max %}&precio_max={{ request.GET.precio_max }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" 
-                       class="px-3 py-2 text-gold hover:text-yellow-400">
+                       class="px-4 py-2 rounded-full bg-darker border border-gold text-gold hover:bg-gold hover:text-black transition">
                         <i class="fas fa-angle-double-left"></i>
                     </a>
                     <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.marca %}&marca={{ request.GET.marca }}{% endif %}{% if request.GET.sexo %}&sexo={{ request.GET.sexo }}{% endif %}{% if request.GET.precio_min %}&precio_min={{ request.GET.precio_min }}{% endif %}{% if request.GET.precio_max %}&precio_max={{ request.GET.precio_max }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" 
-                       class="px-3 py-2 text-gold hover:text-yellow-400">
+                       class="px-4 py-2 rounded-full bg-darker border border-gold text-gold hover:bg-gold hover:text-black transition">
                         <i class="fas fa-angle-left"></i>
                     </a>
                 {% endif %}
                 
-                <span class="px-4 py-2 bg-gold text-black rounded font-bold">
+                <span class="px-5 py-2 bg-gold text-black rounded-full font-bold">
                     {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
                 </span>
                 
                 {% if page_obj.has_next %}
                     <a href="?page={{ page_obj.next_page_number }}{% if request.GET.marca %}&marca={{ request.GET.marca }}{% endif %}{% if request.GET.sexo %}&sexo={{ request.GET.sexo }}{% endif %}{% if request.GET.precio_min %}&precio_min={{ request.GET.precio_min }}{% endif %}{% if request.GET.precio_max %}&precio_max={{ request.GET.precio_max }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" 
-                       class="px-3 py-2 text-gold hover:text-yellow-400">
+                       class="px-4 py-2 rounded-full bg-darker border border-gold text-gold hover:bg-gold hover:text-black transition">
                         <i class="fas fa-angle-right"></i>
                     </a>
                     <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.marca %}&marca={{ request.GET.marca }}{% endif %}{% if request.GET.sexo %}&sexo={{ request.GET.sexo }}{% endif %}{% if request.GET.precio_min %}&precio_min={{ request.GET.precio_min }}{% endif %}{% if request.GET.precio_max %}&precio_max={{ request.GET.precio_max }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" 
-                       class="px-3 py-2 text-gold hover:text-yellow-400">
+                       class="px-4 py-2 rounded-full bg-darker border border-gold text-gold hover:bg-gold hover:text-black transition">
                         <i class="fas fa-angle-double-right"></i>
                     </a>
                 {% endif %}

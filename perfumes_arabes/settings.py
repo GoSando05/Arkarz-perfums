@@ -40,7 +40,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize', 
     'perfumes',
+    'usuarios',
     'whitenoise.runserver_nostatic',  # Para servir archivos estáticos
 ]
 
@@ -151,6 +153,11 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Configuración de autenticación
+LOGIN_REDIRECT_URL = 'inicio'  # A dónde va después de iniciar sesión
+LOGOUT_REDIRECT_URL = 'inicio'  # A dónde va después de cerrar sesión
+LOGIN_URL = 'login'  # Si se usa @login_required, te redirige acá
 
 # Email configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

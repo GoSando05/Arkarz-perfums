@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}Arkarz Perfums{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -10,22 +10,56 @@
             theme: {
                 extend: {
                     colors: {
-                        'gold': '#FFD700',
-                        'dark': '#1a1a1a',
-                        'darker': '#111111'
-                    }
-                }
-            }
+                        gold: '#FFD700',
+                        dark: '#1a1a1a',
+                        darker: '#111111',
+                    },
+                },
+            },
         }
     </script>
     <style>
         .gradient-gold {
             background: linear-gradient(45deg, #FFD700, #FFA500);
         }
+        #cart-items > div {
+            padding: 0.75rem;
+            border-bottom: 1px solid #333;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        #cart-items > div:last-child {
+            border-bottom: none;
+        }
+        #cart-items p {
+            margin: 0 0 0.25rem 0;
+            line-height: 1.3;
+        }
+        #cart-items p.text-gold {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #FFD700;
+        }
+        #cart-items p.text-gray-400 {
+            font-size: 0.875rem;
+        }
+        #cart-items button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #FF5050;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s ease-in-out;
+        }
+        #cart-items button:hover {
+            color: #ff4444;
+        }
     </style>
 </head>
 <body class="bg-black text-white">
-    <!-- Navegación -->
     <nav class="bg-darker shadow-lg border-b border-gold sticky top-0 z-40">
         <div class="container mx-auto px-4">
             <div class="flex justify-between items-center py-4">
@@ -36,11 +70,20 @@
                         <a href="{% url 'perfumes:productos' %}" class="text-gray-300 hover:text-gold transition-colors">Productos</a>
                     </div>
                 </div>
-                <!-- Carrito de compras -->
                 <div class="flex items-center space-x-4">
-                    <button onclick="toggleCart()" class="relative text-gray-300 hover:text-gold transition-colors">
+                    {% if user.is_authenticated %}
+                        <span class="text-gray-300">Hola, {{ user.username }}</span>
+                        <a href="{% url 'logout' %}" class="text-gray-300 hover:text-gold transition">Cerrar sesión</a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="text-gray-300 hover:text-gold transition">Iniciar sesión</a>
+                        <a href="{% url 'registro' %}" class="text-gray-300 hover:text-gold transition">Registrarse</a>
+                    {% endif %}
+
+                    <button id="cart-toggle" class="relative text-gray-300 hover:text-gold transition-colors" aria-label="Abrir carrito">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 1.5M7 13l1.5 1.5m0 0L15 18H8l-7-7m15 0v6a2 2 0 01-2 2H8a2 2 0 01-2-2v-6m12 0H8"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 1.5M7 13l1.5 1.5m0 0L15 18H8l-7-7m15 0v6a2 2 0 01-2 2H8a2 2 0 01-2-2v-6m12 0H8">
+                            </path>
                         </svg>
                         <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
                     </button>
@@ -49,163 +92,148 @@
         </div>
     </nav>
 
-    <!-- Contenido principal -->
     <main>
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
 
-    <!-- Carrito lateral -->
     <div id="cart-sidebar" class="fixed right-0 top-0 h-full w-80 bg-darker border-l border-gold transform translate-x-full transition-transform z-50">
-        <div class="p-4 border-b border-gold">
-            <div class="flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gold">🛒 Mi Carrito</h3>
-                <button onclick="toggleCart()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
-            </div>
+        <div class="p-4 border-b border-gold flex justify-between items-center">
+            <h3 class="text-xl font-bold text-gold">🛒 Mi Carrito</h3>
+            <button id="cart-close" class="text-gray-400 hover:text-white text-2xl" aria-label="Cerrar carrito">&times;</button>
         </div>
         <div id="cart-items" class="p-4 flex-1 overflow-y-auto max-h-96">
-            <div id="empty-cart" class="text-center py-8">
-                <span class="text-gold text-4xl block mb-2">🛒</span>
-                <p class="text-gray-400">Tu carrito está vacío</p>
-            </div>
+            <div class="text-center py-8 text-gray-400">Tu carrito está vacío</div>
         </div>
         <div class="p-4 border-t border-gold">
-            <div class="mb-4">
-                <div class="flex justify-between items-center text-lg font-bold">
-                    <span class="text-gold">Total:</span>
-                    <span id="cart-total" class="text-gold">$0</span>
-                </div>
+            <div class="mb-4 flex justify-between items-center text-lg font-bold">
+                <span class="text-gold">Total:</span>
+                <span id="cart-total" class="text-gold">$0</span>
             </div>
-            <button id="checkout-btn" onclick="checkout()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <button id="checkout-btn" disabled
+                    class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 💬 Finalizar por WhatsApp
             </button>
         </div>
     </div>
 
-    <!-- Overlay para cerrar carrito -->
-    <div id="cart-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40" onclick="toggleCart()"></div>
+    <div id="cart-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40"></div>
 
-    <!-- JavaScript del carrito -->
     <script>
-        // Usar variable global en lugar de localStorage
-        let cart = [];
-
-        function updateCartUI() {
-            const cartCount = document.getElementById('cart-count');
-            const cartItems = document.getElementById('cart-items');
-            const cartTotal = document.getElementById('cart-total');
-            const emptyCart = document.getElementById('empty-cart');
-            const checkoutBtn = document.getElementById('checkout-btn');
-
-            // Actualizar contador
-            if (cart.length > 0) {
-                const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-                cartCount.textContent = totalItems;
-                cartCount.classList.remove('hidden');
-            } else {
-                cartCount.classList.add('hidden');
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i=0; i<cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
             }
+            return cookieValue;
+        }
 
-            // Actualizar items del carrito
-            if (cart.length === 0) {
-                checkoutBtn.disabled = true;
-                cartTotal.textContent = '$0';
-                cartItems.innerHTML = `
-                    <div id="empty-cart" class="text-center py-8">
-                        <span class="text-gold text-4xl block mb-2">🛒</span>
-                        <p class="text-gray-400">Tu carrito está vacío</p>
-                    </div>
-                `;
-            } else {
-                checkoutBtn.disabled = false;
+        const csrfToken = getCookie('csrftoken');
 
-                let total = 0;
-                cartItems.innerHTML = cart.map(item => {
-                    const itemTotal = item.price * item.quantity;
-                    total += itemTotal;
-                    return `
-                        <div class="flex items-center space-x-3 p-3 border-b border-gray-700 last:border-b-0">
-                            <img src="${item.image}" alt="${item.name}" class="w-12 h-12 object-cover rounded">
-                            <div class="flex-1">
-                                <h4 class="text-sm font-semibold text-gold">${item.name}</h4>
-                                <p class="text-xs text-gray-400">${item.price}</p>
-                                <div class="flex items-center space-x-2 mt-1">
-                                    <button onclick="updateQuantity(${item.id}, ${item.quantity - 1})" class="text-xs bg-gray-600 hover:bg-gray-700 px-2 py-1 rounded">-</button>
-                                    <span class="text-xs">${item.quantity}</span>
-                                    <button onclick="updateQuantity(${item.id}, ${item.quantity + 1})" class="text-xs bg-gray-600 hover:bg-gray-700 px-2 py-1 rounded">+</button>
+        const cartToggleBtn = document.getElementById('cart-toggle');
+        const cartSidebar = document.getElementById('cart-sidebar');
+        const cartOverlay = document.getElementById('cart-overlay');
+        const cartCloseBtn = document.getElementById('cart-close');
+        const cartCountElem = document.getElementById('cart-count');
+        const cartItemsElem = document.getElementById('cart-items');
+        const cartTotalElem = document.getElementById('cart-total');
+        const checkoutBtn = document.getElementById('checkout-btn');
+
+        cartToggleBtn.addEventListener('click', toggleCart);
+        cartCloseBtn.addEventListener('click', toggleCart);
+        cartOverlay.addEventListener('click', toggleCart);
+
+        async function fetchCart() {
+            try {
+                const response = await fetch("{% url 'perfumes:carrito_json' %}");
+                if (response.ok) {
+                    const data = await response.json();
+                    return data;
+                }
+            } catch (error) {
+                console.error('Error fetching cart:', error);
+            }
+            return {items: [], total_items: 0, total_monto: 0};
+        }
+
+        async function updateCartUI() {
+            const data = await fetchCart();
+            if (data.total_items > 0) {
+                cartCountElem.textContent = data.total_items;
+                cartCountElem.classList.remove('hidden');
+
+                let html = '';
+                data.items.forEach(item => {
+                    const imagenUrl = item.imagen || '/static/placeholder.png';
+                    html += `<div class="p-3 border-b border-gray-700 flex gap-3 items-center">
+                                <img src="${imagenUrl}" alt="${item.nombre}" class="w-16 h-16 object-cover rounded border border-gold">
+                                <div class="flex-1">
+                                    <p class="text-gold font-semibold text-sm">${item.nombre}</p>
+                                    <p class="text-xs text-gray-400">Cantidad: ${item.cantidad}</p>
+                                    <p class="text-xs text-gray-400">Subtotal: ${item.subtotal.toLocaleString('es-CO')}</p>
                                 </div>
-                            </div>
-                            <button onclick="removeFromCart(${item.id})" class="text-red-500 hover:text-red-400">×</button>
-                        </div>
-                    `;
-                }).join('');
-
-                cartTotal.textContent = `${total.toFixed(3)}`;
-            }
-        }
-
-        function addToCart(id, name, price, image) {
-            // Buscar si el producto ya existe en el carrito
-            const existingItemIndex = cart.findIndex(item => item.id === parseInt(id));
-            if (existingItemIndex !== -1) {
-                cart[existingItemIndex].quantity += 1;
+                                <button onclick="removeFromCart('${item.id}')" class="text-red-500 hover:text-red-400 text-xl font-bold" aria-label="Eliminar producto">&times;</button>
+                            </div>`;
+                });
+                cartItemsElem.innerHTML = html;
+                cartTotalElem.textContent = `$${data.total_monto.toLocaleString('es-CO')}`;
+                checkoutBtn.disabled = false;
             } else {
-                const newItem = {
-                    id: parseInt(id),
-                    name: name,
-                    price: parseFloat(price),
-                    image: image,
-                    quantity: 1
-                };
-                cart.push(newItem);
-            }
-            updateCartUI();
-            showToast('Producto agregado al carrito');
-        }
-
-        function updateQuantity(id, newQuantity) {
-            if (newQuantity <= 0) {
-                removeFromCart(id);
-                return;
-            }
-            const itemIndex = cart.findIndex(item => item.id === parseInt(id));
-            if (itemIndex !== -1) {
-                cart[itemIndex].quantity = newQuantity;
-                updateCartUI();
+                cartCountElem.classList.add('hidden');
+                cartItemsElem.innerHTML = `<div class="text-center py-8 text-gray-400">Tu carrito está vacío</div>`;
+                cartTotalElem.textContent = '$0';
+                checkoutBtn.disabled = true;
             }
         }
 
-        function removeFromCart(id) {
-            cart = cart.filter(item => item.id !== parseInt(id));
-            updateCartUI();
-            showToast('Producto eliminado del carrito');
+        async function removeFromCart(id) {
+            try {
+                const response = await fetch(`{% url 'perfumes:eliminar_del_carrito' 0 %}`.replace('0', id), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    await updateCartUI();
+                    showToast('Producto eliminado del carrito');
+                } else {
+                    showToast(data.error || 'No se pudo eliminar');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error de conexión');
+            }
         }
 
         function toggleCart() {
-            const sidebar = document.getElementById('cart-sidebar');
-            const overlay = document.getElementById('cart-overlay');
-            if (sidebar.classList.contains('translate-x-full')) {
-                sidebar.classList.remove('translate-x-full');
-                overlay.classList.remove('hidden');
-            } else {
-                sidebar.classList.add('translate-x-full');
-                overlay.classList.add('hidden');
-            }
+            cartSidebar.classList.toggle('translate-x-full');
+            cartOverlay.classList.toggle('hidden');
         }
 
-        function checkout() {
-            if (cart.length === 0) return;
-            let message = "Hola, quiero hacer este pedido:\n\n🛒 MI CARRITO:\n";
-            let total = 0;
-            cart.forEach(item => {
-                const itemTotal = item.price * item.quantity;
-                message += `• ${item.name} - ${item.price} (x${item.quantity}) = ${itemTotal.toFixed(3)}\n`;
-                total += itemTotal;
+        checkoutBtn.addEventListener('click', async () => {
+            const data = await fetchCart();
+            let whatsappMessage = "Hola, deseo hacer este pedido:\n\n";
+            data.items.forEach(item => {
+                whatsappMessage += `- ${item.nombre} x ${item.cantidad} = $${item.subtotal.toLocaleString('es-CO')}\n`;
             });
-            message += `\n💰 Total: ${total.toFixed(3)}\n\nPor favor confirma disponibilidad.`;
-            const whatsappUrl = `https://wa.me/573218599032?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
-        }
+            whatsappMessage += `\nTotal: $${data.total_monto.toLocaleString('es-CO')}\n`;
+            whatsappMessage += "\nPor favor confirmar disponibilidad.";
+            const whatsappUrl = `https://wa.me/573218599032?text=${encodeURIComponent(whatsappMessage)}`;
+            window.open(whatsappUrl, "_blank");
+            toggleCart();
+        });
 
         function showToast(message) {
             const toast = document.createElement('div');
@@ -223,17 +251,12 @@
             }, 3000);
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            updateCartUI();
-        });
+        document.addEventListener('DOMContentLoaded', updateCartUI);
     </script>
-
-    <!-- Footer -->
-    <footer class="bg-darker border-t border-gold py-8 mt-12">
-        <div class="container mx-auto px-4 text-center">
-            <div class="text-gold font-bold text-lg mb-2">Arkarz Perfums</div>
-            <p class="text-gray-400 text-sm">Fragancias árabes exclusivas</p>
-        </div>
-    </footer>
 </body>
 </html>
+
+
+
+
+

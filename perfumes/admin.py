@@ -1,6 +1,5 @@
-# perfumes/admin.py
 from django.contrib import admin
-from .models import Marca, Perfume
+from .models import Marca, Perfume, Calificacion
 
 @admin.register(Marca)
 class MarcaAdmin(admin.ModelAdmin):
@@ -13,9 +12,17 @@ class MarcaAdmin(admin.ModelAdmin):
         return obj.perfumes.count()
     total_perfumes.short_description = 'Total Perfumes'
 
+
+class CalificacionInline(admin.TabularInline):
+    model = Calificacion
+    extra = 0
+    readonly_fields = ['fecha', 'ip_usuario']
+    fields = ['puntuacion', 'comentario', 'ip_usuario', 'fecha']
+
+
 @admin.register(Perfume)
 class PerfumeAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'marca', 'sexo', 'tamaño', 'precio', 'stock', 'activo', 'destacado')
+    list_display = ('nombre', 'marca', 'sexo', 'tamaño', 'precio', 'stock', 'activo', 'destacado', 'calificacion_promedio', 'total_calificaciones')
     list_filter = (
         'sexo',           # Filtro por sexo
         'marca',          # Filtro por marca
@@ -27,6 +34,7 @@ class PerfumeAdmin(admin.ModelAdmin):
     search_fields = ('nombre', 'marca__nombre', 'descripcion')
     list_editable = ('precio', 'stock', 'activo', 'destacado')
     list_per_page = 25
+    inlines = [CalificacionInline]
     
     # Campos que se muestran al editar
     fieldsets = (
@@ -49,6 +57,15 @@ class PerfumeAdmin(admin.ModelAdmin):
         filters = list(self.list_filter)
         filters.append(PrecioRangeFilter)
         return filters
+    
+    def calificacion_promedio(self, obj):
+        return f"{obj.calificacion_promedio} ⭐"
+    calificacion_promedio.short_description = 'Calificación'
+    
+    def total_calificaciones(self, obj):
+        return obj.total_calificaciones
+    total_calificaciones.short_description = 'Nº Calificaciones'
+
 
 # Filtro personalizado para rangos de precio
 class PrecioRangeFilter(admin.SimpleListFilter):
@@ -72,3 +89,16 @@ class PrecioRangeFilter(admin.SimpleListFilter):
             return queryset.filter(precio__gte=100000, precio__lt=200000)
         if self.value() == '200+':
             return queryset.filter(precio__gte=200000)
+
+
+@admin.register(Calificacion)
+class CalificacionAdmin(admin.ModelAdmin):
+    list_display = ['perfume', 'puntuacion', 'ip_usuario', 'fecha', 'tiene_comentario']
+    list_filter = ['puntuacion', 'fecha']
+    search_fields = ['perfume__nombre', 'comentario', 'ip_usuario']
+    readonly_fields = ['fecha']
+    date_hierarchy = 'fecha'
+    
+    def tiene_comentario(self, obj):
+        return '✓' if obj.comentario else '✗'
+    tiene_comentario.short_description = 'Comentario'
