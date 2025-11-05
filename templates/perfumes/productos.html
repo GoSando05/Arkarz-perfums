@@ -9,11 +9,11 @@
     
     <!-- Formulario de Filtros -->
     <div class="mb-8">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <form id="filtros-form" method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Filtro por Marca -->
             <div>
                 <label class="block text-sm font-medium text-gold mb-2">Marca</label>
-                <select name="marca" class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold">
+                <select name="marca" class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold filtro-select">
                     <option value="">Todas las marcas</option>
                     {% for marca in marcas %}
                         <option value="{{ marca.id }}" {% if marca.id|stringformat:"s" == marca_seleccionada %}selected{% endif %}>
@@ -26,7 +26,7 @@
             <!-- Filtro por Sexo -->
             <div>
                 <label class="block text-sm font-medium text-gold mb-2">Género</label>
-                <select name="sexo" class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold">
+                <select name="sexo" class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold filtro-select">
                     <option value="">Todos</option>
                     <option value="H" {% if sexo_seleccionado == 'H' %}selected{% endif %}>Hombre</option>
                     <option value="M" {% if sexo_seleccionado == 'M' %}selected{% endif %}>Mujer</option>
@@ -38,7 +38,7 @@
             <div>
                 <label class="block text-sm font-medium text-gold mb-2">Precio Mín.</label>
                 <input type="number" name="precio_min" value="{{ precio_min }}" 
-                       class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold"
+                       class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold filtro-input"
                        placeholder="0" min="0" step="1000">
             </div>
             
@@ -46,24 +46,20 @@
             <div>
                 <label class="block text-sm font-medium text-gold mb-2">Precio Máx.</label>
                 <input type="number" name="precio_max" value="{{ precio_max }}"
-                       class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold"
+                       class="w-full px-4 py-2 border border-gold rounded-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold filtro-input"
                        placeholder="1000000" min="0" step="1000">
-            </div>
-            
-            <!-- Botón de Filtrar -->
-            <div class="flex items-end">
-                <button type="submit" class="w-full bg-gold text-black py-2 px-4 rounded-full hover:bg-yellow-400 transition duration-300 font-bold shadow-lg hover:shadow-xl">
-                    <i class="fas fa-filter mr-2"></i> Filtrar
-                </button>
             </div>
         </form>
         
         <!-- Barra de búsqueda -->
         <div class="mt-4">
-            <form method="GET" class="flex">
+            <form id="busqueda-form" method="GET" class="flex">
                 <input type="text" name="q" value="{{ busqueda }}" 
                        class="flex-1 px-4 py-2 border border-gold rounded-l-full bg-black text-gold focus:outline-none focus:ring-2 focus:ring-gold"
-                       placeholder="Buscar perfumes...">
+                       placeholder="Buscar perfumes..." id="busqueda-input">
+                <button type="button" onclick="limpiarFiltros()" class="bg-gold text-black px-6 py-2 hover:bg-yellow-400 transition duration-300 font-bold">
+                    🔄 Limpiar
+                </button>
                 <button type="submit" class="bg-gold text-black px-6 py-2 rounded-r-full hover:bg-yellow-400 transition duration-300 font-bold">
                     <i class="fas fa-search"></i>
                 </button>
@@ -89,9 +85,10 @@
     </div>
     
     <!-- Grid de Perfumes -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {% for perfume in perfumes %}
-            <div class="bg-darker rounded-lg shadow-md overflow-hidden hover:scale-105 hover:shadow-xl transition-all duration-300 border border-gold">
+            <div class="relative bg-darker rounded-lg shadow-md overflow-hidden hover:scale-105 hover:shadow-xl transition-all duration-300 border border-gold">
+                <!-- imagen/producto -->
                 {% if perfume.imagen %}
                     <img src="{{ perfume.imagen.url }}" alt="{{ perfume.nombre }}" 
                          class="w-full h-64 object-cover">
@@ -101,6 +98,15 @@
                     </div>
                 {% endif %}
                 
+                <!-- Botón de agregar a deseos -->
+                <button type="button"
+                        data-perfume-id="{{ perfume.id }}"
+                        data-wishlist-url="{% url 'perfumes:lista_deseos_anadir' perfume.id %}"
+                        class="btn-wishlist absolute top-3 right-12 text-yellow-400 bg-black/60 p-2 rounded-full shadow hover:text-yellow-300 transition"
+                        title="Agregar a deseos">
+                    <i class="fas fa-heart text-lg"></i>
+                </button>
+                
                 <div class="p-4">
                     <h3 class="font-bold text-lg text-gold mb-2">{{ perfume.nombre }}</h3>
                     <p class="text-gold font-semibold text-sm mb-2">{{ perfume.marca.nombre }}</p>
@@ -109,11 +115,10 @@
                         <p class="text-gray-400 text-sm mb-3 line-clamp-2">{{ perfume.descripcion|truncatewords:15 }}</p>
                     {% endif %}
                     
-                     <div class="flex justify-between items-center mb-3">
+                    <div class="flex justify-between items-center mb-3">
                         <span class="text-2xl font-bold text-gold">
-                          ${{ perfume.precio }}
+                            ${{ perfume.precio|floatformat:0 }}
                         </span>
-                        
                         <span class="px-3 py-1 rounded-full text-xs font-medium
                                    {% if perfume.sexo == 'H' %}bg-blue-900 text-blue-200
                                    {% elif perfume.sexo == 'M' %}bg-pink-900 text-pink-200
@@ -180,5 +185,66 @@ document.getElementById('ordenSelect').addEventListener('change', function() {
     url.searchParams.set('orden', this.value);
     window.location.href = url.toString();
 });
+
+// Filtrado automático
+let filtroTimeout;
+
+// Escuchar cambios en los selects (marca, sexo)
+document.querySelectorAll('.filtro-select').forEach(select => {
+    select.addEventListener('change', function() {
+        aplicarFiltros();
+    });
+});
+
+// Escuchar cambios en los inputs de precio (con delay)
+document.querySelectorAll('.filtro-input').forEach(input => {
+    input.addEventListener('input', function() {
+        clearTimeout(filtroTimeout);
+        filtroTimeout = setTimeout(() => {
+            aplicarFiltros();
+        }, 800); // Espera 800ms después de que el usuario deje de escribir
+    });
+});
+
+// Búsqueda automática
+let busquedaTimeout;
+document.getElementById('busqueda-input').addEventListener('input', function() {
+    clearTimeout(busquedaTimeout);
+    busquedaTimeout = setTimeout(() => {
+        document.getElementById('busqueda-form').submit();
+    }, 1000); // Espera 1 segundo después de que el usuario deje de escribir
+});
+
+function aplicarFiltros() {
+    const form = document.getElementById('filtros-form');
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+    
+    // Agregar todos los filtros
+    for (let [key, value] of formData.entries()) {
+        if (value) {
+            params.append(key, value);
+        }
+    }
+    
+    // Mantener el orden actual si existe
+    const ordenActual = new URLSearchParams(window.location.search).get('orden');
+    if (ordenActual) {
+        params.append('orden', ordenActual);
+    }
+    
+    // Mantener la búsqueda actual si existe
+    const busquedaActual = document.getElementById('busqueda-input').value;
+    if (busquedaActual) {
+        params.append('q', busquedaActual);
+    }
+    
+    // Redirigir con los nuevos filtros
+    window.location.href = '?' + params.toString();
+}
+
+function limpiarFiltros() {
+    window.location.href = window.location.pathname;
+}
 </script>
 {% endblock %}

@@ -1,5 +1,7 @@
 from django.db import models
 from django.db.models import Avg
+from django.contrib.auth.models import User
+from django.conf import settings
 
 class Marca(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -73,10 +75,11 @@ class Perfume(models.Model):
 
 class Calificacion(models.Model):
     perfume = models.ForeignKey(Perfume, on_delete=models.CASCADE, related_name='calificaciones')
-    puntuacion = models.IntegerField(choices=[(i, i) for i in range(1, 6)])  # 1 a 5 estrellas
-    ip_usuario = models.GenericIPAddressField()  # Para evitar calificaciones duplicadas
+    puntuacion = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    ip_usuario = models.GenericIPAddressField()
     comentario = models.TextField(blank=True, null=True)
     fecha = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='calificaciones')
     
     def __str__(self):
         return f"{self.perfume.nombre} - {self.puntuacion} estrellas"
@@ -85,5 +88,53 @@ class Calificacion(models.Model):
         ordering = ['-fecha']
         verbose_name = 'Calificación'
         verbose_name_plural = 'Calificaciones'
-        unique_together = ['perfume', 'ip_usuario']  # Una calificación por IP por producto
+        unique_together = ['perfume', 'ip_usuario']
+
+
+class HistorialVisualizacion(models.Model):
+    """Registra qué productos ha visto cada usuario/sesión"""
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='visualizaciones')
+    session_key = models.CharField(max_length=40, null=True, blank=True)  # Para usuarios no autenticados
+    perfume = models.ForeignKey(Perfume, on_delete=models.CASCADE, related_name='visualizaciones')
+    fecha = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Visualización'
+        verbose_name_plural = 'Visualizaciones'
+        indexes = [
+            models.Index(fields=['usuario', '-fecha']),
+            models.Index(fields=['session_key', '-fecha']),
+        ]
+    
+    def __str__(self):
+        if self.usuario:
+            return f"{self.usuario.username} vio {self.perfume.nombre}"
+        return f"Sesión {self.session_key[:8]} vio {self.perfume.nombre}"
+
+
+class ListaDeseos(models.Model):
+    """
+    Productos que el usuario ha guardado en su lista de deseos
+    """
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='lista_deseos'
+    )
+    perfume = models.ForeignKey(
+        Perfume,
+        on_delete=models.CASCADE,
+        related_name='en_listas_deseos'
+    )
+    fecha_agregado = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Lista de Deseos"
+        verbose_name_plural = "Listas de Deseos"
+        unique_together = ('usuario', 'perfume')  # Un usuario no puede agregar el mismo producto 2 veces
+        ordering = ['-fecha_agregado']
+    
+    def __str__(self):
+        return f"{self.usuario.username} - {self.perfume.nombre}"
 

@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Marca, Perfume, Calificacion
+from .emails import notificar_nuevo_perfume, notificar_promocion
 
 @admin.register(Marca)
 class MarcaAdmin(admin.ModelAdmin):
@@ -35,6 +36,7 @@ class PerfumeAdmin(admin.ModelAdmin):
     list_editable = ('precio', 'stock', 'activo', 'destacado')
     list_per_page = 25
     inlines = [CalificacionInline]
+    actions = ['notificar_usuarios', 'enviar_promocion']
     
     # Campos que se muestran al editar
     fieldsets = (
@@ -65,6 +67,53 @@ class PerfumeAdmin(admin.ModelAdmin):
     def total_calificaciones(self, obj):
         return obj.total_calificaciones
     total_calificaciones.short_description = 'Nº Calificaciones'
+    
+    def save_model(self, request, obj, form, change):
+        """Notificar cuando se crea un nuevo perfume"""
+        es_nuevo = obj.pk is None
+        super().save_model(request, obj, form, change)
+        
+        if es_nuevo and obj.activo:
+            # Enviar notificación de nuevo perfume
+            try:
+                emails_enviados = notificar_nuevo_perfume(obj)
+                self.message_user(request, f'✅ Perfume guardado. Se enviaron {emails_enviados} notificaciones por email.')
+            except Exception as e:
+                self.message_user(request, f'⚠️ Perfume guardado, pero hubo un error al enviar emails: {e}', level='warning')
+    
+    def notificar_usuarios(self, request, queryset):
+        """Acción para notificar sobre perfumes seleccionados"""
+        total_enviados = 0
+        for perfume in queryset:
+            if perfume.activo:
+                enviados = notificar_nuevo_perfume(perfume)
+                total_enviados += enviados
+        
+        self.message_user(request, f'Se enviaron {total_enviados} notificaciones sobre {queryset.count()} perfume(s).')
+    notificar_usuarios.short_description = '📧 Notificar usuarios sobre perfumes seleccionados'
+    
+    def enviar_promocion(self, request, queryset):
+        """Acción para enviar promoción sobre perfumes seleccionados"""
+        perfumes_nombres = ', '.join([p.nombre for p in queryset[:3]])
+        if queryset.count() > 3:
+            perfumes_nombres += '...'
+        
+        mensaje = f"""
+¡Oferta especial en perfumes seleccionados!
+
+Tenemos promociones en: {perfumes_nombres}
+
+¡Visita nuestra tienda y aprovecha estos precios especiales!
+        """
+        
+        enviados = notificar_promocion(
+            titulo='Ofertas Especiales',
+            mensaje=mensaje,
+            perfumes_ids=list(queryset.values_list('id', flat=True))
+        )
+        
+        self.message_user(request, f'Se enviaron {enviados} emails de promoción.')
+    enviar_promocion.short_description = '🎉 Enviar promoción de perfumes seleccionados'
 
 
 # Filtro personalizado para rangos de precio
@@ -102,3 +151,53 @@ class CalificacionAdmin(admin.ModelAdmin):
     def tiene_comentario(self, obj):
         return '✓' if obj.comentario else '✗'
     tiene_comentario.short_description = 'Comentario'
+
+
+from .models import HistorialVisualizacion
+
+@admin.register(HistorialVisualizacion)
+class HistorialVisualizacionAdmin(admin.ModelAdmin):
+    list_display = ['perfume', 'usuario_o_sesion', 'fecha']
+    list_filter = ['fecha']
+    search_fields = ['perfume__nombre', 'usuario__username', 'session_key']
+    readonly_fields = ['fecha', 'usuario', 'session_key', 'perfume']
+    date_hierarchy = 'fecha'
+    
+    def usuario_o_sesion(self, obj):
+        if obj.usuario:
+            return f"👤 {obj.usuario.username}"
+        return f"🔑 Sesión: {obj.session_key[:8]}..."
+    usuario_o_sesion.short_description = 'Usuario/Sesión'
+    
+    def has_add_permission(self, request):
+        return False  # No permitir crear manualmente
+
+
+from . import models
+
+@admin.register(models.ListaDeseos)
+class ListaDeseosAdmin(admin.ModelAdmin):
+    list_display = ('id', 'usuario_str', 'perfume_str', 'fecha_agregado')
+    # evitar referenciar campos desconocidos en list_filter
+    list_filter = ('fecha_agregado',)
+    # mantener search_fields vacío para evitar errores si las relaciones tienen otros nombres
+    search_fields = ()
+    ordering = ('-fecha_agregado',)
+
+    def usuario_str(self, obj):
+        # intenta distintos nombres posibles de la FK al usuario
+        for attr in ('user', 'usuario', 'cliente'):
+            related = getattr(obj, attr, None)
+            if related:
+                return getattr(related, 'username', str(related))
+        return '—'
+    usuario_str.short_description = 'Usuario'
+
+    def perfume_str(self, obj):
+        # intenta distintos nombres posibles de la FK al perfume/producto
+        for attr in ('perfume', 'producto', 'item'):
+            related = getattr(obj, attr, None)
+            if related:
+                return getattr(related, 'nombre', getattr(related, 'title', str(related)))
+        return '—'
+    perfume_str.short_description = 'Perfume'

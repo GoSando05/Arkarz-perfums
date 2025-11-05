@@ -16,6 +16,11 @@ urlpatterns = [
     path('carrito-json/', views.carrito_json, name='carrito_json'),
     path('remove-from-cart/<int:perfume_id>/', views.eliminar_del_carrito, name='eliminar_del_carrito'),
     path('calificar/<int:perfume_id>/', views.calificar_perfume, name='calificar_perfume'),
+     path('lista-deseos/', views.lista_deseos, name='lista_deseos'),
+    path('lista-deseos/agregar/<int:perfume_id>/', views.agregar_a_lista_deseos, name='agregar_a_lista_deseos'),
+    path('lista-deseos/eliminar/<int:perfume_id>/', views.eliminar_de_lista_deseos, name='eliminar_de_lista_deseos'),
+    path('lista-deseos/contar/', views.contar_lista_deseos, name='contar_lista_deseos'),
+    path('lista-deseos/anadir/<int:perfume_id>/', views.agregar_a_lista_deseos, name='lista_deseos_anadir'),
 ]
 
 

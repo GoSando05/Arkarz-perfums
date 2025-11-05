@@ -5,16 +5,21 @@ from django.db.models import Q
 from urllib.parse import quote
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
-from .models import Perfume, Marca, Calificacion
+from .models import Perfume, Marca, Calificacion, ListaDeseos
+from django.contrib.auth.decorators import login_required
+from .recomendaciones import obtener_recomendaciones, registrar_visualizacion, productos_similares
 from decimal import Decimal
 
 def home(request):
-    perfumes_destacados = Perfume.objects.filter(activo=True)[:8]
+    # Obtener recomendaciones personalizadas (CAMBIO: limite=4)
+    perfumes_recomendados = obtener_recomendaciones(request, limite=4)
     marcas = Marca.objects.filter(activo=True)
+    
     context = {
-        'perfumes': perfumes_destacados,
+        'perfumes': perfumes_recomendados,
         'marcas': marcas,
-        'titulo': 'Perfumes Árabes - Arkarz Perfums'
+        'titulo': 'Perfumes Árabes - Arkarz Perfums',
+        'es_recomendacion': True
     }
     return render(request, 'perfumes/home.html', context)
 
@@ -81,15 +86,29 @@ def productos(request):
 
 def detalle_perfume(request, perfume_id):
     perfume = get_object_or_404(Perfume, id=perfume_id, activo=True)
-    perfumes_relacionados = Perfume.objects.filter(
-        activo=True
-    ).filter(
-        Q(marca=perfume.marca) | Q(sexo=perfume.sexo)
-    ).exclude(id=perfume.id)[:4]
+    
+    print("🔴 ANTES DE REGISTRAR VISUALIZACIÓN")
+    
+    # Registrar visualización
+    registrar_visualizacion(request, perfume)
+    
+    print("🟢 DESPUÉS DE REGISTRAR VISUALIZACIÓN")
+    
+    # Obtener productos similares usando el sistema de recomendaciones
+    perfumes_relacionados = productos_similares(perfume, limite=4)
+    
+    # Obtener el comentario más reciente con calificación
+    comentarios_recientes = Calificacion.objects.filter(
+        perfume=perfume,
+        comentario__isnull=False
+    ).exclude(
+        comentario=''
+    ).order_by('-fecha')[:1]
 
     context = {
         'perfume': perfume,
         'perfumes_relacionados': perfumes_relacionados,
+        'comentarios_recientes': comentarios_recientes,
         'titulo': f'{perfume.nombre} - Arkarz Perfums'
     }
     return render(request, 'perfumes/detalle.html', context)
@@ -312,6 +331,82 @@ def calificar_perfume(request, perfume_id):
         'promedio': perfume.calificacion_promedio,
         'total': perfume.total_calificaciones
     })
+
+
+# ========== LISTA DE DESEOS ==========
+
+@login_required
+def lista_deseos(request):
+    """
+    Muestra la lista de deseos del usuario
+    """
+    deseos = ListaDeseos.objects.filter(usuario=request.user).select_related('perfume', 'perfume__marca')
+    
+    context = {
+        'deseos': deseos,
+        'titulo': 'Mi Lista de Deseos - Arkarz Perfums'
+    }
+    return render(request, 'perfumes/lista_deseos.html', context)
+
+
+@login_required
+@require_POST
+def agregar_a_lista_deseos(request, perfume_id):
+    """
+    Agrega un perfume a la lista de deseos del usuario
+    """
+    perfume = get_object_or_404(Perfume, id=perfume_id, activo=True)
+    
+    # Crear o verificar si ya existe
+    lista_deseos, created = ListaDeseos.objects.get_or_create(
+        usuario=request.user,
+        perfume=perfume
+    )
+    
+    if created:
+        return JsonResponse({
+            'success': True,
+            'message': f'"{perfume.nombre}" agregado a tu lista de deseos',
+            'action': 'added'
+        })
+    else:
+        return JsonResponse({
+            'success': True,
+            'message': f'"{perfume.nombre}" ya está en tu lista de deseos',
+            'action': 'already_exists'
+        })
+
+
+@login_required
+@require_POST
+def eliminar_de_lista_deseos(request, perfume_id):
+    """
+    Elimina un perfume de la lista de deseos del usuario
+    """
+    perfume = get_object_or_404(Perfume, id=perfume_id)
+    
+    try:
+        lista_deseos = ListaDeseos.objects.get(usuario=request.user, perfume=perfume)
+        lista_deseos.delete()
+        return JsonResponse({
+            'success': True,
+            'message': f'"{perfume.nombre}" eliminado de tu lista de deseos',
+            'action': 'removed'
+        })
+    except ListaDeseos.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'El producto no está en tu lista de deseos'
+        }, status=404)
+
+
+@login_required
+def contar_lista_deseos(request):
+    """
+    Devuelve el número de productos en la lista de deseos (para el navbar)
+    """
+    count = ListaDeseos.objects.filter(usuario=request.user).count()
+    return JsonResponse({'count': count})
 
 
 

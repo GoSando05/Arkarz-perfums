@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-12">
-    <div class="bg-darker rounded-lg shadow-lg border border-gold flex flex-col md:flex-row p-8">
+    <div class="bg-darker rounded-lg rounded-lg shadow-lg border border-gold flex flex-col md:flex-row p-8">
         {% if perfume.imagen %}
             <img src="{{ perfume.imagen.url }}" alt="{{ perfume.nombre }}" class="w-80 h-80 object-cover rounded-lg border border-gold mb-6 md:mb-0 md:mr-8 flex-shrink-0">
         {% else %}
@@ -44,6 +44,17 @@
                 <a href="{% url 'perfumes:productos' %}" class="bg-gold text-black px-6 py-2 rounded-md font-bold hover:bg-yellow-400 transition">
                     Volver a productos
                 </a>
+
+                <!-- Botón de lista de deseos (icono solo) -->
+                <div class="mt-4 md:mt-0 md:ml-6 flex items-start">
+                    <button type="button"
+                            data-perfume-id="{{ perfume.id }}"
+                            data-wishlist-url="{% url 'perfumes:lista_deseos_anadir' perfume.id %}"
+                            class="btn-wishlist text-yellow-400 bg-transparent p-2 rounded-full ml-2 hover:text-yellow-300 transition"
+                            title="Agregar a deseos">
+                        <i class="fa-solid fa-heart text-2xl"></i>
+                    </button>
+                </div>
             </form>
             </div>
             
@@ -102,6 +113,106 @@
             </div>
         </div>
     </div>
+
+    <!-- Sección de Comentarios Recientes -->
+    {% if comentarios_recientes %}
+    <div class="mt-8 bg-darker rounded-lg p-6 border border-gold">
+        <h3 class="text-2xl font-bold text-gold mb-6">
+            <i class="fas fa-comments mr-2"></i>
+            Opiniones de Clientes
+        </h3>
+        
+        <div class="space-y-6">
+            {% for comentario in comentarios_recientes %}
+            <div class="bg-black rounded-lg p-5 border border-gray-700 hover:border-gold transition-colors">
+                <!-- Header del comentario -->
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <!-- Avatar -->
+                        <div class="w-10 h-10 rounded-full bg-gold flex items-center justify-center">
+                            <i class="fas fa-user text-black text-sm"></i>
+                        </div>
+                        
+                        <!-- Nombre -->
+                        <span class="text-gray-300 font-medium">Cliente</span>
+                    </div>
+                    
+                    <!-- Estrellas -->
+                    <div class="flex items-center gap-1">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= comentario.puntuacion %}
+                                <i class="fas fa-star text-gold"></i>
+                            {% else %}
+                                <i class="far fa-star text-gray-600"></i>
+                            {% endif %}
+                        {% endfor %}
+                        <span class="text-gold font-bold ml-2">{{ comentario.puntuacion }}/5</span>
+                    </div>
+                </div>
+                
+                <!-- Comentario -->
+                <p class="text-gray-300 leading-relaxed mb-2">
+                    "{{ comentario.comentario }}"
+                </p>
+                
+                <!-- Fecha -->
+                <p class="text-gray-500 text-sm">
+                    <i class="far fa-clock mr-1"></i>
+                    {{ comentario.fecha|date:"d/m/Y" }}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Mensaje de incentivo -->
+        <div class="mt-6 text-center">
+            <p class="text-gray-400 text-sm">
+                ¿Ya probaste este perfume? 
+                <span class="text-gold font-semibold">¡Deja tu opinión arriba!</span>
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Productos Relacionados -->
+    {% if perfumes_relacionados %}
+    <div class="mt-12">
+        <h3 class="text-2xl font-bold text-gold mb-6">
+            <i class="fas fa-heart mr-2"></i>
+            También te podría gustar
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {% for relacionado in perfumes_relacionados %}
+            <div class="bg-darker rounded-lg shadow-md overflow-hidden hover:scale-105 hover:shadow-xl transition-all duration-300 border border-gold">
+                {% if relacionado.imagen %}
+                    <img src="{{ relacionado.imagen.url }}" alt="{{ relacionado.nombre }}" 
+                         class="w-full h-64 object-cover">
+                {% else %}
+                    <div class="w-full h-64 bg-black flex items-center justify-center">
+                        <i class="fas fa-spray-can text-gold text-4xl"></i>
+                    </div>
+                {% endif %}
+                
+                <div class="p-4">
+                    <h4 class="font-bold text-lg text-gold mb-2">{{ relacionado.nombre }}</h4>
+                    <p class="text-gold font-semibold text-sm mb-2">{{ relacionado.marca.nombre }}</p>
+                    
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-2xl font-bold text-gold">
+                            ${{ relacionado.precio|floatformat:0 }}
+                        </span>
+                    </div>
+                    
+                    <a href="{% url 'perfumes:detalle_perfume' relacionado.id %}" 
+                       class="block w-full text-center bg-gold text-black py-2 rounded-full hover:bg-yellow-400 transition duration-300 font-bold shadow-md hover:shadow-lg">
+                        <i class="fas fa-eye mr-2"></i> Ver Detalles
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <script>
@@ -221,6 +332,82 @@ function showToast(message) {
         setTimeout(() => { document.body.removeChild(toast) }, 300);
     }, 3000);
 }
+
+/* Añadir funciones para lista de deseos */
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+async function añadirAListaDeseos(perfumeId, btn) {
+    try {
+        btn.disabled = true;
+        const endpoint = (btn && btn.dataset && btn.dataset.wishlistUrl) ? btn.dataset.wishlistUrl : `/lista-deseos/anadir/${perfumeId}/`;
+        const resp = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+ 
+         const contentType = resp.headers.get('content-type') || '';
+         const isJson = contentType.includes('application/json');
+ 
+         if (!isJson) {
+             if (resp.status === 302 || resp.status === 401 || resp.status === 403 || resp.redirected) {
+                 showToast('🔒 Debes iniciar sesión para usar la lista de deseos');
+                 btn.disabled = false;
+                 setTimeout(() => { window.location.href = '/accounts/login/?next=' + encodeURIComponent(location.pathname); }, 700);
+                 return;
+             } else {
+                 showToast('❌ Respuesta inesperada del servidor');
+                 btn.disabled = false;
+                 return;
+             }
+         }
+ 
+         const data = await resp.json();
+ 
+         if (resp.ok && data.success) {
+            // estética: marcar corazón rojo; si prefieres amarillo usa 'text-yellow-400'
+            btn.classList.remove('text-gold');
+            btn.classList.add('text-red-500');
+            // también colorear icono del navbar si existe
+            const navIcon = document.getElementById('wishlist-icon');
+            if (navIcon) { navIcon.classList.add('text-red-500'); }
+            showToast('✅ ' + (data.message || 'Agregado a deseos'));
+         } else {
+             showToast('❌ ' + (data.error || 'No se pudo agregar'));
+             btn.disabled = false;
+         }
+     } catch (e) {
+         console.error(e);
+         showToast('❌ Error de conexión');
+         btn.disabled = false;
+     }
+ }
+  
+  // Listener para el botón de deseos en detalle
+  document.addEventListener('DOMContentLoaded', function () {
+      const btn = document.querySelector('button.btn-wishlist[data-perfume-id]');
+      if (btn) {
+          btn.addEventListener('click', function () {
+              const id = this.dataset.perfumeId;
+              if (id) añadirAListaDeseos(id, this);
+          });
+      }
+  });
 </script>
 {% endblock %}
 

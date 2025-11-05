@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}Arkarz Perfums{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome: iconos (necesario para el corazón) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
     <script>
         tailwind.config = {
             theme: {
@@ -69,28 +71,39 @@
                         <a href="{% url 'perfumes:home' %}" class="text-gray-300 hover:text-gold transition-colors">Inicio</a>
                         <a href="{% url 'perfumes:productos' %}" class="text-gray-300 hover:text-gold transition-colors">Productos</a>
                     </div>
-                </div>
-                <div class="flex items-center space-x-4">
+                    <!-- Corazón de lista de deseos: más a la izquierda, separado del logo -->
                     {% if user.is_authenticated %}
-                        <span class="text-gray-300">Hola, {{ user.username }}</span>
-                        <a href="{% url 'logout' %}" class="text-gray-300 hover:text-gold transition">Cerrar sesión</a>
+                    <a id="wishlist-link" href="{% url 'perfumes:lista_deseos' %}" class="text-gold hover:text-yellow-400 relative ml-4 md:ml-6" title="Mis deseos">
+                        <i id="wishlist-icon" class="fas fa-heart text-xl text-gold"></i>
+                        <span id="wishlist-count" class="absolute -top-2 -right-3 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">0</span>
+                    </a>
                     {% else %}
-                        <a href="{% url 'login' %}" class="text-gray-300 hover:text-gold transition">Iniciar sesión</a>
-                        <a href="{% url 'registro' %}" class="text-gray-300 hover:text-gold transition">Registrarse</a>
+                    <a id="wishlist-link" href="{% url 'login' %}?next={% url 'perfumes:lista_deseos' %}" class="text-gold hover:text-yellow-400 relative ml-4 md:ml-6" title="Mis deseos">
+                        <i id="wishlist-icon" class="fas fa-heart text-xl text-gold"></i>
+                    </a>
                     {% endif %}
-
-                    <button id="cart-toggle" class="relative text-gray-300 hover:text-gold transition-colors" aria-label="Abrir carrito">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 1.5M7 13l1.5 1.5m0 0L15 18H8l-7-7m15 0v6a2 2 0 01-2 2H8a2 2 0 01-2-2v-6m12 0H8">
-                            </path>
-                        </svg>
-                        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
-                    </button>
                 </div>
-            </div>
-        </div>
-    </nav>
+                 <div class="flex items-center space-x-4">
+                     {% if user.is_authenticated %}
+                         <span class="text-gray-300">Hola, {{ user.username }}</span>
+                         <a href="{% url 'logout' %}" class="text-gray-300 hover:text-gold transition">Cerrar sesión</a>
+                     {% else %}
+                         <a href="{% url 'login' %}" class="text-gray-300 hover:text-gold transition">Iniciar sesión</a>
+                         <a href="{% url 'registro' %}" class="text-gray-300 hover:text-gold transition">Registrarse</a>
+                     {% endif %}
+ 
+                     <button id="cart-toggle" class="relative text-gray-300 hover:text-gold transition-colors" aria-label="Abrir carrito">
+                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                   d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 1.5M7 13l1.5 1.5m0 0L15 18H8l-7-7m15 0v6a2 2 0 01-2 2H8a2 2 0 01-2-2v-6m12 0H8">
+                             </path>
+                         </svg>
+                         <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                     </button>
+                 </div>
+             </div>
+         </div>
+     </nav>
 
     <main>
         {% block content %}{% endblock %}
@@ -252,6 +265,41 @@
         }
 
         document.addEventListener('DOMContentLoaded', updateCartUI);
+    </script>
+
+    <!-- Añadir JS global para wishlist (colócalo antes de cierre de body) -->
+    <script>
+function getCookie(name){let v=null; if(document.cookie && document.cookie!==''){document.cookie.split(';').forEach(c=>{const cc=c.trim(); if(cc.startsWith(name+'=')) v=decodeURIComponent(cc.split('=')[1]);});} return v;}
+function showToast(msg){ const t=document.createElement('div'); t.className='fixed bottom-4 right-4 bg-black/80 text-white px-4 py-2 rounded z-50'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2800); }
+
+async function añadirAListaDeseos(perfumeId, btn){
+    try{
+        btn.disabled = true;
+        const endpoint = btn?.dataset?.wishlistUrl || `/lista-deseos/anadir/${perfumeId}/`;
+        const resp = await fetch(endpoint, { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken'),'X-Requested-With':'XMLHttpRequest'} });
+        const ct = resp.headers.get('content-type')||'';
+        if(!ct.includes('application/json')){
+            if([302,401,403].includes(resp.status) || resp.redirected){ showToast('🔒 Debes iniciar sesión'); btn.disabled=false; setTimeout(()=>window.location.href='/accounts/login/?next='+encodeURIComponent(location.pathname),700); return; }
+            showToast('❌ Respuesta inesperada'); btn.disabled=false; return;
+        }
+        const data = await resp.json();
+        if(resp.ok && data.success){
+            btn.classList.remove('text-yellow-400'); btn.classList.add('text-red-500');
+            const navIcon = document.getElementById('wishlist-icon'); if(navIcon) navIcon.classList.add('text-red-500');
+            showToast(data.message || 'Agregado a deseos');
+            // actualizar contador (opcional)
+            try{ fetch("{% url 'perfumes:contar_lista_deseos' %}").then(r=>r.json()).then(j=>{ const el=document.getElementById('wishlist-count'); if(el) el.textContent = j.count ?? el.textContent; }); }catch(e){}
+        } else {
+            showToast(data.error || 'No se pudo agregar'); btn.disabled=false;
+        }
+    } catch(e){ console.error(e); showToast('❌ Error de conexión'); btn.disabled=false; }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('button.btn-wishlist').forEach(btn=>{
+        btn.addEventListener('click', function(){ const id = this.dataset.perfumeId; if(id) añadirAListaDeseos(id, this); });
+    });
+});
     </script>
 </body>
 </html>
